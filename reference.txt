@@ -1,0 +1,17 @@
+0x10 - 4 bytes signed int total weight
+0x18 - 4 bytes year
+0x1C - first half is day of month (1-15/16-31 dep. if the hour is odd or even), second half is month (1-15)
+'0x1D - hour (divided by 2, remainder used to determine day of month)
+0x1D - bits
+	1: +2 to minute
+	2: +1 to minute
+	3: +16 to hour
+	4: +8 to hour
+	5: +4 to hour
+	6: +2 to hour?
+	7: +1 to hour
+	8: Second half day of month
+0x1E - minute by 4s
+
+
+June 19th 2011   08:13
