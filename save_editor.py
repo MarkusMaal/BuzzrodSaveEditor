@@ -1,16 +1,17 @@
 import sys, os
-
 slot_table = "Best Push,Sink Fast,Once Uncut,Twice Uncut,Once Ok,Twice Ok,Gambler,Anti-Arrows,Sleeping Pill,Guts,Outstanding,Float Reverse,Vibration Up 1,Vibration Down 1,Smell Up 1,Smell Down 1,Light Up 1,Light Down 1,Sound Up 1,Sound Down 1,Vibration Up 2,Vibration Down 2,Smell Up 2,Smell Down 2,Light Up 2,Light Down 2,Sound Up 2,Sound Down 2,Vibration Up 3,Vibration Down 3,Smell Up 3,Smell Down 3,Light Up 3,Light Down 3,Sound Up 3,Sound Down 3".split(",")
 item_table = "Cicada Shell,Dragonfly Wing,Waterweed,Leaf,White Flower,Orange Flower,Pink Flower,Unknown Fossil A,Rain Crystal,Beautiful Small Stone,Fang,Bird Wing,Emerald,Ruby,Piece of Ruin A,Piece of Ruin B,Diamond,Squid Grass,Tree Honey,Ancient Tools A,Ancient Tools B,Tin Toy,Aquamarine,Scent Bag,Nut,Propeller Grass,Weight,Turquoizo Husk,Crystallized Thunder,Piece of Shooting Star,Stray Shooting Star,Unknown Fossil B,Ancient Water,Shrimp Barbel,Button,Small Fire,Sapphire,Ancient Spoon,Mysterious Lithograph 1,Mysterious Lithograph 2,Mysterious Lithograph 3,Bone A,Bone B,Big Fallen Leaf,Honey,Snail Shell,Pearl,Small Web,Wooden Board,Aromatic Mushroom,Fountainhead Water,Golden Apple,Pebble,Cheese,Scorpion Trail,Green Axe Carapace,Small Mountain,Small Wind,Balloon Flower,Dried Nuts,Tackle Box,Rod,Diary,Diary Page,Recipe".split(",")
 environments = "The Lost Ruins,The Missing Jungle,The Big Tree,The Dish Pond,The Haunted Cave,The Bush River,Map 6,The Pocket Sea,The Final Jungle".split(",")
 lures = "Dragonflew,Froggy,Quest Worm,Pointer,Cicadar,Glass Star,Rain Dolphin,Emerald Leaf,Spinny Fin,Shad Blade,Dig Deep,Frogger,Hopper,Shooting Flower,Bug Worm,Kraken,Femme,Squid Lure,Lily,Old Stuff,Laura,Flame Toy,Ballith,Squiddy,Spinnow,Ballista,Jeweler,Buster,Sharky,Tifoss,Daram,Rabbit,Kurokuro,Verge,Scorpy,Buzz,Death Witch,Buggy".split(",")
 env_count = len(environments)
 lurecount = len(lures)
+debug = False
+
 for i in range(256-len(environments)):
     environments.append("Invalid (ID: " + str(i+env_count) + ")")
 for i in range(256-len(lures)):
     lures.append("Invalid (ID: " + str(i+lurecount) + ")")
-
+lures[255] = "No lure"
 def process_file(filename, mode, slot_sel, output):
     with open(filename, 'rb') as f:
         byte_s = f.read(7)
@@ -30,7 +31,7 @@ def process_file(filename, mode, slot_sel, output):
                 if mode == "area":
                     f.seek(slot_sel*0x820+0xC)
                     area = int.from_bytes(f.read(1), "little")
-                    print(environments[area] + " (ID: " + str(area) + ", byte: " + hex(slot_sel*0x820+0xC) + ")")
+                    print(environments[area] + " (ID: " + str(area) + ", bytes: " + hex(slot_sel*0x820+0xC) + ", " + hex(slot_sel*0x820+0x21F) + ")")
                     return
                 if mode[:4] == "list":
                     print("ID".ljust(10), "Name".ljust(30), "Count".ljust(10), "Type".ljust(20), "Byte".ljust(10), "Raw".ljust(5))
@@ -44,9 +45,9 @@ def process_file(filename, mode, slot_sel, output):
                         if count >= 32:
                             count = count - 32
                             consumptive = True
-                        if count > 0 and not consumptive:
+                        if (count > 0 and not consumptive) or debug:
                             print(str(i).ljust(10), slot_table[i].ljust(30), "".ljust(10), "Slot".ljust(20), hex(seek).ljust(10), int.from_bytes(byte_s, "little"))
-                        if count > 0 and consumptive:
+                        if (count > 0 and consumptive) or debug:
                             print(str(i).ljust(10), slot_table[i].ljust(30), str(count).ljust(10), "Slot (consumptive)".ljust(20), hex(seek).ljust(10), int.from_bytes(byte_s, "little"))
                         seek += 4
                 if mode == "list items" or mode == "list":
@@ -57,7 +58,7 @@ def process_file(filename, mode, slot_sel, output):
                         count = int(int.from_bytes(byte_s, "little") / 2)
                         if count >= 32:
                             count = count - 32
-                        if count > 0:
+                        if count > 0 or debug:
                             print(str(i).ljust(10), item_table[i].ljust(30), str(count).ljust(10), "Item".ljust(20), hex(seek).ljust(10), int.from_bytes(byte_s, "little"))
                         seek += 4
         except:
@@ -147,7 +148,7 @@ def list_saves(f):
 
 def help():
     filename = os.path.basename(__file__)
-    print("BuzzRod save file editor 0.2\n")
+    print("BuzzRod save file editor 0.3\n")
     print("Switches:\n")
     print("-f [filename]".ljust(45), "Specify the save file, which you want to access")
     print("-o [filename]".ljust(45), "Specify output path for the modified save file")
@@ -164,6 +165,7 @@ def help():
     print("-v [integer]".ljust(45), "Specifies a value to be written to the byte (do not use this for items or slots)")
     print("-saves".ljust(45), "Displays list of saves")
     print("-h".ljust(45), "Displays help screen")
+    print("-d".ljust(45), "Display all values")
     print("\nExamples:\n")
     print(filename + " -f BESLES-53236 -li -save2".ljust(65), "Displays items for the second save slot")
     print(filename + " -f BESLES-53236 -a -save3".ljust(65), "Displays current area on third save slot")
@@ -212,6 +214,8 @@ def main():
         lastmode = mode
         if arg == "-f":
             mode = "file"
+        elif arg == "-d":
+            debug = True
         elif arg == "-fix":
             fix_corruption = True
         elif arg == "-p":
