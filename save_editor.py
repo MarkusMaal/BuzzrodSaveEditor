@@ -166,9 +166,11 @@ def help():
     print("-saves".ljust(45), "Displays list of saves")
     print("-h".ljust(45), "Displays help screen")
     print("-d".ljust(45), "Display all values")
+    print("-ca".ljust(45), "Change area for a save (Note: player position will not change)")
     print("\nExamples:\n")
     print(filename + " -f BESLES-53236 -li -save2".ljust(65), "Displays items for the second save slot")
     print(filename + " -f BESLES-53236 -a -save3".ljust(65), "Displays current area on third save slot")
+    print(filename + " -f BESLES-53236 -ca 0 -save4 -o BESLES-53236.modified".ljust(65), "Sets current area to The Lost Ruins for fourth save slot")
     print(filename + " -f BESLES-53236 -fix".ljust(65), "Try to fix save file")
     print(filename + " -f BESLES-53236 -p 0x6b9 -iv 3 -o BESLES_53236.modified".ljust(65), "Set Mysterious Lithograph 3 count to 3 on save 1")
     print(filename + " -f BESLES-53236 -p 0x589 -nc -o BESLES_53236.modified".ljust(65), "Gives Best push slot item to save 1")
@@ -184,6 +186,7 @@ def main():
     value = 0
     lastmode = ""
     patch = False
+    charea = False
     fix_corruption = False
     for arg in sys.argv[1::]:
         if mode == "file":
@@ -197,6 +200,11 @@ def main():
                 index = int(arg[2:], 16)
             else:
                 index = int(arg)
+            patch = True
+            mode = lastmode
+        elif mode == "charea":
+            value = int(arg)
+            charea = True
             patch = True
             mode = lastmode
         elif mode == "setval":
@@ -231,6 +239,8 @@ def main():
             mode = lastmode
         elif arg == "-l":
             mode = "list"
+        elif arg == "-ca":
+            mode = "charea"
         elif arg == "-a":
             mode = "area"
         elif arg == "-ls":
@@ -265,8 +275,18 @@ def main():
         if not patch:
             process_file(filename, mode, slot, output)
         else:
-            with open(filename, "rb") as f:
-                modify_byte(f, output, index, value)
+            if charea:
+                menu_text = (slot*0x820)+0xc
+                area_value = (slot*0x820)+0x21f
+                with open(filename, "rb") as f:
+                    modify_byte(f, ".temp", menu_text, value)
+                with open(".temp", "rb") as f:
+                    modify_byte(f, output, area_value, value)
+                print("Deleted .temp")
+                os.remove(".temp")
+            else:
+                with open(filename, "rb") as f:
+                    modify_byte(f, output, index, value)
 
 if __name__ == "__main__":
     main()
